@@ -24,8 +24,20 @@ jobs:
     - name: Build
       run: dotnet build --no-restore --configuration Release
 
-    - name: Test
-      run: dotnet test --no-build --configuration Release --verbosity normal --collect:"XPlat Code Coverage"
+    - name: Test - Fast Unit Tests
+      run: dotnet test --no-build --configuration Release --verbosity normal --filter "FullyQualifiedName~TokenOperationTests|FullyQualifiedName~TokenTypeTests|FullyQualifiedName~TemplateTests|FullyQualifiedName~YamlLoaderTests|FullyQualifiedName~ResourceLoaderTests|FullyQualifiedName~StringBuilderTests"
+
+    - name: Test - InsertLinks Tests
+      run: dotnet test --no-build --configuration Release --verbosity normal --filter "FullyQualifiedName~InsertLinksTests"
+
+    - name: Test - Citation and Authority Tests
+      run: dotnet test --no-build --configuration Release --verbosity normal --filter "FullyQualifiedName~CitationTests|FullyQualifiedName~AuthorityTests"
+
+    - name: Test - Citator Tests (Sequential)
+      run: dotnet test --no-build --configuration Release --verbosity normal --filter "FullyQualifiedName~CitatorTests"
+
+    - name: Test - Real World Tests
+      run: dotnet test --no-build --configuration Release --verbosity normal --filter "FullyQualifiedName~RealWorldTests" --collect:"XPlat Code Coverage"
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4

@@ -222,7 +222,7 @@ public static class YamlLoader
                     Data = (subData[0].ToString()!, subData[1].ToString()!),
                     Token = strDict.GetValueOrDefault("token")?.ToString(),
                     Output = strDict.GetValueOrDefault("output")?.ToString(),
-                    IsMandatory = strDict.GetValueOrDefault("mandatory") as bool? ?? true
+                    IsMandatory = ParseYamlBoolean(strDict.GetValueOrDefault("mandatory"), defaultValue: true)
                 };
             }
 
@@ -236,7 +236,7 @@ public static class YamlLoader
                     Action = TokenOperationAction.Lookup,
                     Data = lookupDict,
                     Token = strDict.GetValueOrDefault("token")?.ToString(),
-                    IsMandatory = strDict.GetValueOrDefault("mandatory") as bool? ?? true
+                    IsMandatory = ParseYamlBoolean(strDict.GetValueOrDefault("mandatory"), defaultValue: true)
                 };
             }
 
@@ -404,6 +404,28 @@ public static class YamlLoader
             Parts = yaml.GetParts(),
             Edits = edits,
             UrlEncode = isUrl
+        };
+    }
+
+    /// <summary>
+    /// Parses YAML boolean values which can be: true/false, yes/no, on/off (case-insensitive)
+    /// </summary>
+    private static bool ParseYamlBoolean(object? value, bool defaultValue)
+    {
+        if (value == null)
+            return defaultValue;
+
+        // Already a bool
+        if (value is bool boolValue)
+            return boolValue;
+
+        // String representation
+        var strValue = value.ToString()?.ToLowerInvariant();
+        return strValue switch
+        {
+            "yes" or "true" or "on" => true,
+            "no" or "false" or "off" => false,
+            _ => defaultValue
         };
     }
 }
