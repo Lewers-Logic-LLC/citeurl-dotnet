@@ -100,13 +100,31 @@ public record TokenOperation
     {
         var dict = (Dictionary<string, string>)Data;
 
-        // Case-insensitive lookup
-        var key = dict.Keys.FirstOrDefault(k =>
-            string.Equals(k, input, StringComparison.OrdinalIgnoreCase));
-
-        if (key != null)
+        // Lookup uses regex pattern matching (case-insensitive fullmatch)
+        // Keys in the dictionary are regex patterns, not literal strings
+        // Matches Python's pattern.fullmatch(input) behavior
+        foreach (var (pattern, replacement) in dict)
         {
-            return dict[key];
+            try
+            {
+                // Add anchors for fullmatch behavior (match entire string)
+                var anchoredPattern = $"^(?:{pattern})$";
+                var regex = new Regex(anchoredPattern, RegexOptions.IgnoreCase, TimeSpan.FromSeconds(1));
+                if (regex.IsMatch(input))
+                {
+                    return replacement;
+                }
+            }
+            catch (RegexMatchTimeoutException)
+            {
+                // Timeout - continue to next pattern
+                continue;
+            }
+            catch (ArgumentException)
+            {
+                // Invalid regex pattern - skip it
+                continue;
+            }
         }
 
         if (IsMandatory)
@@ -140,15 +158,24 @@ public record TokenOperation
     {
         var (fromStyle, toStyle) = ((string, string))Data;
 
-        // First, convert input to integer
-        int number = fromStyle.ToLowerInvariant() switch
+        // First, convert input to integer (with auto-detection if fromStyle is "detect")
+        int number;
+        if (fromStyle.ToLowerInvariant() == "detect")
         {
-            "digit" => int.Parse(input),
-            "roman" => RomanToInt(input),
-            "cardinal" => CardinalToInt(input),
-            "ordinal" => OrdinalToInt(input),
-            _ => throw new InvalidOperationException($"Unknown from style: {fromStyle}")
-        };
+            // Auto-detect the input format (matches Python behavior)
+            number = DetectAndParseNumber(input);
+        }
+        else
+        {
+            number = fromStyle.ToLowerInvariant() switch
+            {
+                "digit" => int.Parse(input),
+                "roman" => RomanToInt(input),
+                "cardinal" => CardinalToInt(input),
+                "ordinal" => OrdinalToInt(input),
+                _ => throw new InvalidOperationException($"Unknown from style: {fromStyle}")
+            };
+        }
 
         // Then convert integer to target style
         return toStyle.ToLowerInvariant() switch
@@ -159,6 +186,49 @@ public record TokenOperation
             "ordinal" => IntToOrdinal(number),
             _ => throw new InvalidOperationException($"Unknown to style: {toStyle}")
         };
+    }
+
+    private static int DetectAndParseNumber(string input)
+    {
+        // Try digit first (most common)
+        if (int.TryParse(input, out int digit))
+            return digit;
+
+        // Try digit with suffix (e.g., "2nd", "3rd")
+        if (input.Length > 2 && int.TryParse(input[..^2], out int digitWithSuffix))
+            return digitWithSuffix;
+
+        // Try roman numeral
+        try
+        {
+            return RomanToInt(input);
+        }
+        catch
+        {
+            // Not a roman numeral, continue
+        }
+
+        // Try cardinal
+        try
+        {
+            return CardinalToInt(input);
+        }
+        catch
+        {
+            // Not a cardinal, continue
+        }
+
+        // Try ordinal
+        try
+        {
+            return OrdinalToInt(input);
+        }
+        catch
+        {
+            // Not an ordinal either
+        }
+
+        throw new InvalidOperationException($"Could not detect number format for: {input}");
     }
 
     #region Number Style Conversion Helpers

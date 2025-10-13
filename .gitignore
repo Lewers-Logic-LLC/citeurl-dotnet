@@ -13,5 +13,7 @@ coverage/
 *.nupkg
 
 # Claude Code local files
-.claude/settings.local.json
-CLAUDE.md
+.claude/
+.featurePlans/
+.orchestrators/
+.sessionContexts/
