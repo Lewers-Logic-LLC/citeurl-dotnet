@@ -161,15 +161,20 @@ public static class YamlLoader
         // If parent exists, use inheritance
         if (parent != null)
         {
+            var patterns = yaml.GetPatterns();
+            var broadPatterns = yaml.GetBroadPatterns();
+            var shortformPatterns = yaml.GetShortformPatterns();
+            var idformPatterns = yaml.GetIdformPatterns();
+
             return Template.Inherit(
                 parent,
                 name: name,
                 tokens: tokens.Count > 0 ? tokens : null,
                 metadata: metadata.Count > 0 ? metadata : null,
-                patterns: yaml.GetPatterns(),
-                broadPatterns: yaml.GetBroadPatterns(),
-                shortformPatterns: yaml.GetShortformPatterns(),
-                idformPatterns: yaml.GetIdformPatterns(),
+                patterns: patterns.Count > 0 ? patterns : null,
+                broadPatterns: broadPatterns.Count > 0 ? broadPatterns : null,
+                shortformPatterns: shortformPatterns.Count > 0 ? shortformPatterns : null,
+                idformPatterns: idformPatterns.Count > 0 ? idformPatterns : null,
                 urlBuilder: urlBuilder,
                 nameBuilder: nameBuilder
             );

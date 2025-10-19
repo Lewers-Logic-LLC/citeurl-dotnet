@@ -29,6 +29,30 @@ public class Template
         ImmutableDictionary<string, string>.Empty;
 
     /// <summary>
+    /// Raw pattern strings (before token replacement and compilation).
+    /// Stored for template inheritance - child templates inherit parent's raw patterns.
+    /// </summary>
+    public ImmutableList<string> RawPatterns { get; init; } = ImmutableList<string>.Empty;
+
+    /// <summary>
+    /// Raw broad pattern strings (before token replacement and compilation).
+    /// Stored for template inheritance - child templates inherit parent's raw patterns.
+    /// </summary>
+    public ImmutableList<string> RawBroadPatterns { get; init; } = ImmutableList<string>.Empty;
+
+    /// <summary>
+    /// Raw shortform pattern strings (before token replacement).
+    /// Stored for template inheritance - child templates inherit parent's raw patterns.
+    /// </summary>
+    public ImmutableList<string> RawShortformPatterns { get; init; } = ImmutableList<string>.Empty;
+
+    /// <summary>
+    /// Raw idform pattern strings (before token replacement).
+    /// Stored for template inheritance - child templates inherit parent's raw patterns.
+    /// </summary>
+    public ImmutableList<string> RawIdformPatterns { get; init; } = ImmutableList<string>.Empty;
+
+    /// <summary>
     /// Compiled regex patterns for normal (narrow) matching.
     /// Case-sensitive, precise patterns.
     /// </summary>
@@ -100,6 +124,12 @@ public class Template
         UrlBuilder = urlBuilder;
         NameBuilder = nameBuilder;
         RegexTimeout = regexTimeout ?? TimeSpan.FromSeconds(1);
+
+        // Store raw patterns for inheritance
+        RawPatterns = patterns.ToImmutableList();
+        RawBroadPatterns = broadPatterns.ToImmutableList();
+        RawShortformPatterns = shortformPatterns.ToImmutableList();
+        RawIdformPatterns = idformPatterns.ToImmutableList();
 
         // Build replacement dictionary from metadata + tokens
         var replacements = BuildReplacementDictionary();
@@ -211,14 +241,21 @@ public class Template
         var mergedUrlBuilder = urlBuilder ?? parent.UrlBuilder;
         var mergedNameBuilder = nameBuilder ?? parent.NameBuilder;
 
+        // Inherit parent's raw patterns when child doesn't provide them
+        // This matches Python's behavior where child templates reuse parent patterns
+        var mergedPatterns = patterns ?? parent.RawPatterns;
+        var mergedBroadPatterns = broadPatterns ?? parent.RawBroadPatterns;
+        var mergedShortformPatterns = shortformPatterns ?? parent.RawShortformPatterns;
+        var mergedIdformPatterns = idformPatterns ?? parent.RawIdformPatterns;
+
         return new Template(
             name: name ?? parent.Name,
             tokens: mergedTokens,
             metadata: mergedMetadata,
-            patterns: patterns ?? Array.Empty<string>(),
-            broadPatterns: broadPatterns ?? Array.Empty<string>(),
-            shortformPatterns: shortformPatterns ?? Array.Empty<string>(),
-            idformPatterns: idformPatterns ?? Array.Empty<string>(),
+            patterns: mergedPatterns,
+            broadPatterns: mergedBroadPatterns,
+            shortformPatterns: mergedShortformPatterns,
+            idformPatterns: mergedIdformPatterns,
             urlBuilder: mergedUrlBuilder,
             nameBuilder: mergedNameBuilder,
             regexTimeout: parent.RegexTimeout
