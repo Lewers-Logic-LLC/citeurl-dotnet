@@ -11,9 +11,12 @@ obj/
 TestResults/
 coverage/
 *.nupkg
+nupkgs/
+*.log
 
 # Claude Code local files
 .claude/
 .featurePlans/
 .orchestrators/
 .sessionContexts/
+/.mcp.json

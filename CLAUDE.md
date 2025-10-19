@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 CiteUrl.NET is a C# port of the Python [citeurl](https://github.com/raindrum/citeurl) library for parsing and hyperlinking legal citations. The library supports 130+ citation formats including US federal and state case law, statutes, and regulations using YAML-based extensible templates.
 
+**Status**: 🚧 Alpha - Core functionality complete, API may change before 1.0 release
+
 **Technology Stack**: .NET 9, C# 13, xUnit, YamlDotNet, Serilog
 
 **Python Reference**: The original Python implementation is located at `C:\Users\tlewers\source\repos\citeurl` and can be used as a reference for understanding expected behavior, YAML template formats, and bug fixes. When encountering ambiguities or bugs, always consult the Python version first.
@@ -27,56 +29,59 @@ dotnet build
 dotnet build src/CiteUrl.Core/CiteUrl.Core.csproj
 ```
 
-### Testing
+**Known Build Warnings**:
+- `NU1504`: Duplicate PackageReference for `Microsoft.NET.Test.Sdk` in test project - benign, can be ignored
+- `NETSDK1057`: Preview .NET version warning - expected for .NET 9
 
-**IMPORTANT**: Due to a performance issue in `Citator.ListCitations()` idform chain resolution, tests containing `ListCitations` calls will timeout when run together:
+### NuGet Packaging
 
 ```bash
-# Run tests individually or in small groups (RECOMMENDED)
-dotnet test --filter "FullyQualifiedName~TokenOperationTests"  # ✅ Fast
-dotnet test --filter "FullyQualifiedName~TemplateTests"  # ✅ Fast
-dotnet test --filter "FullyQualifiedName~YamlLoaderTests"  # ✅ Fast
+# Build Release configuration
+dotnet build --configuration Release
 
-# AVOID running these together (will timeout):
-dotnet test --filter "FullyQualifiedName~CitatorTests.ListCitations"  # ⚠️ Timeout
-dotnet test --filter "FullyQualifiedName~CitatorTests"  # ⚠️ Timeout (contains ListCitations tests)
-dotnet test  # ⚠️ Timeout (runs all tests)
+# Create NuGet package (outputs to standard location: src/CiteUrl.Core/bin/Release/)
+dotnet pack src/CiteUrl.Core/CiteUrl.Core.csproj --configuration Release --no-build
+
+# Package location: src/CiteUrl.Core/bin/Release/CiteUrl.Core.{version}.nupkg
 ```
 
-**Known Issue - `ListCitations` Performance Bug** (Citator.cs:126-147):
-- **Root Cause**: The `while (true)` loop in `ListCitations` searching for idform chains causes extreme slowdown with 90+ templates
-- **Impact**: Any test calling `ListCitations()` will timeout (>30 seconds) when run with other tests
-- **Workaround**: Run tests individually or in small groups that don't include `ListCitations` tests
-- **Individual Test Status**: All tests pass when run separately (including ListCitations tests)
-- **Code Functionality**: The actual citation parsing works correctly; only test execution is affected
+**IMPORTANT**: Always use the standard output location (`bin/Release/`) for NuGet packages. Do NOT use custom `--output` paths unless explicitly requested by the user.
+
+### Testing
+
+```bash
+# Run all tests (recommended - all bugs fixed!)
+dotnet test
+
+# Run specific test groups
+dotnet test --filter "FullyQualifiedName~TokenOperationTests"
+dotnet test --filter "FullyQualifiedName~TemplateTests"
+dotnet test --filter "FullyQualifiedName~RealWorldTests"
+
+# Run single test
+dotnet test --filter "FullyQualifiedName~SpecificTestName"
+
+# List all available tests
+dotnet test --list-tests
+```
+
+**Test Suite Status**:
+- ✅ All 127+ tests pass successfully
+- ✅ Full test suite completes in ~20 seconds
+- ✅ No timeouts or hangs (infinite loop bugs fixed as of commit 4ac5535)
 
 **Test Suite Summary** (127+ tests total):
-- ✅ TokenOperationTests: 17/17 pass (fast, <100ms)
-- ✅ TemplateTests: 5/5 pass (fast, <200ms)
-- ✅ TokenTypeTests: All pass (fast)
-- ✅ StringBuilderTests: All pass (fast)
-- ✅ InsertLinksTests: All pass (3s)
-- ✅ YamlLoaderTests: All pass (fast)
-- ⚠️ CitatorTests: 10 tests, pass individually, timeout together
-- ⚠️ CitationTests: Pass individually, timeout together
-- ✅ AuthorityTests: Pass
-- ✅ RealWorldTests: Pass
-- ✅ ResourceLoaderTests: Pass
-
-**To disable parallel test execution** (doesn't fix the issue but helps isolate):
-Create `tests/CiteUrl.Core.Tests/xunit.runner.json`:
-```json
-{
-  "parallelizeAssembly": false,
-  "parallelizeTestCollections": false,
-  "maxParallelThreads": 1
-}
-```
-
-### Useful Test Filters
-- `--filter "FullyQualifiedName~CitatorTests.Cite_FindsFirstCitation"` - Single test method
-- `--filter "FullyQualifiedName~TemplateTests"` - All Template tests
-- `--filter "FullyQualifiedName~YamlLoaderTests"` - All YamlLoader tests
+- ✅ TokenOperationTests: 17 tests - token normalization pipeline (sub, lookup, case, lpad, number_style)
+- ✅ TemplateTests: 5 tests - regex compilation, token replacement, inheritance
+- ✅ TokenTypeTests: 3 tests - edit pipeline execution
+- ✅ StringBuilderTests: 8 tests - URL/name generation with token substitution
+- ✅ InsertLinksTests: 14 tests - HTML/Markdown link insertion
+- ✅ YamlLoaderTests: 5 tests - YAML deserialization with custom converters
+- ✅ CitatorTests: 10 tests - citation finding and enumeration
+- ✅ CitationTests: 8 tests - citation model and token handling
+- ✅ AuthorityTests: 6 tests - citation grouping by core tokens
+- ✅ RealWorldTests: 35 tests - integration tests with real legal citations
+- ✅ ResourceLoaderTests: 9 tests - embedded YAML resource loading
 
 ## Architecture
 
@@ -91,6 +96,7 @@ Create `tests/CiteUrl.Core.Tests/xunit.runner.json`:
   - `Cite(text)` - Find first citation
   - `ListCitations(text)` - Stream all citations (returns `IEnumerable<Citation>`)
   - `ListAuthorities(citations)` - Group citations by core tokens
+  - `InsertLinks(text, markupFormat)` - Insert HTML/Markdown hyperlinks
 
 **Template** (`src/CiteUrl.Core/Templates/Template.cs`)
 - Immutable citation pattern definition with compiled regexes
@@ -143,6 +149,7 @@ Create `tests/CiteUrl.Core.Tests/xunit.runner.json`:
 
 Default YAML templates are embedded as resources:
 - `src/CiteUrl.Core/Templates/Resources/*.yaml`
+- Files: `caselaw.yaml`, `general-federal-law.yaml`, `specific-federal-laws.yaml`, `state-law.yaml`, `secondary-sources.yaml`
 - Loaded by `ResourceLoader.LoadAllDefaultYaml()`
 - Combined into single YAML string for parsing
 
@@ -172,6 +179,10 @@ Template Name:
     page:                     # Complex syntax
       regex: \d+
       severable: yes          # YAML boolean (yes/no/true/false/on/off)
+      edits:
+        - operation: sub
+          pattern: ','
+          replacement: ''
   patterns:
     - '{volume} Test {page}'  # {tokens} replaced with named regex groups
   broad patterns:             # Case-insensitive patterns
@@ -240,3 +251,53 @@ tests/
 - **Immutability**: Never mutate `ImmutableDictionary`/`ImmutableList` - use `.Add()`, `.SetItems()` to create new instances
 - **Nullable Reference Types**: Enabled (`<Nullable>enable</Nullable>`)
 - **Documentation**: XML doc comments required (`GenerateDocumentationFile: true`)
+
+## Supported Citation Types
+
+- **U.S. Case Law**: Supreme Court, Circuit Courts, District Courts, Bankruptcy
+- **State Case Law**: All 50 states + territories
+- **Federal Statutes**: U.S. Code (USC)
+- **Federal Regulations**: Code of Federal Regulations (CFR)
+- **State Codes**: California, New York, Texas, and 47 other states
+- **Constitutions**: U.S. Constitution, state constitutions
+- **Federal Rules**: FRCP, FRE, FRAP, FRCrP, etc.
+- **Secondary Sources**: Law reviews, restatements
+
+## Recent Fixes (October 2025)
+
+### Infinite Loop Bug Fix (Commit 4ac5535)
+**Problem**: Tests were hanging/crashing with "Test host process crashed" due to infinite loop in idform citation chain resolution. The same idform citation was being found repeatedly (1500+ iterations) before crashing.
+
+**Root Causes**:
+1. Incorrect Span position calculation in `GetIdformCitation()` - was using match.Index (0) from substring instead of actual position in source text
+2. No forward progress validation in idform chain iteration loop
+3. No maximum iteration safety limit
+
+**Solution**:
+- Fixed `GetIdformCitation()` and `GetShortformCitations()` to correctly calculate Span positions using adjustedIndex
+- Added forward progress check that breaks if `idform.Span.Start` doesn't advance
+- Added maximum iteration limit (100) as safety valve
+- Enhanced diagnostic logging with position tracking
+
+**Result**: All 35 RealWorldTests now pass in 17 seconds (previously crashed after 60+ seconds)
+
+**Files Modified**:
+- `src/CiteUrl.Core/Models/Citation.cs` - Fixed Span calculation, added helper methods
+- `src/CiteUrl.Core/Templates/Citator.cs` - Added progress checks and safety limits
+
+### Template Inheritance Bug Fix (Commit efc59fe)
+**Problem**: Child templates inheriting from parents without providing their own patterns received empty pattern arrays instead of inheriting parent's patterns, causing Federal Rules tests to fail.
+
+**Root Cause**: `Template.Inherit()` used `Array.Empty<string>()` when child provided null patterns.
+
+**Solution**:
+- Added RawPatterns storage fields to Template class
+- Store raw patterns before processing/compilation
+- `Inherit()` now uses parent's raw patterns when child provides null
+- `YamlLoader` passes null (not empty list) when YAML doesn't provide patterns
+
+**Result**: All template inheritance tests now pass, including Federal Rules of Evidence, State Constitutions, and Federal Rules of Appellate Procedure
+
+**Files Modified**:
+- `src/CiteUrl.Core/Templates/Template.cs` - Added raw pattern fields and inheritance logic
+- `src/CiteUrl.Core/Utilities/YamlLoader.cs` - Changed to pass null for empty patterns
