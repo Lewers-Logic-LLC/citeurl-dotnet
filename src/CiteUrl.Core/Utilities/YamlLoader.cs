@@ -236,7 +236,7 @@ public static class YamlLoader
                     Action = TokenOperationAction.Lookup,
                     Data = lookupDict,
                     Token = strDict.GetValueOrDefault("token")?.ToString(),
-                    IsMandatory = ParseYamlBoolean(strDict.GetValueOrDefault("mandatory"), defaultValue: true)
+                    IsMandatory = ParseYamlBoolean(strDict.GetValueOrDefault("mandatory"), defaultValue: false)
                 };
             }
 
