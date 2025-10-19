@@ -269,28 +269,61 @@ public record class Citation
         {
             foreach (Match match in regex.Matches(searchText))
             {
-                // Create a new match object with adjusted indices
-                var adjustedText = match.Value;
                 var adjustedIndex = startIndex + match.Index;
 
-                // Create match on original source text
-                var sourceMatch = Regex.Match(
-                    SourceText.Substring(adjustedIndex),
-                    Regex.Escape(adjustedText),
-                    RegexOptions.None,
-                    RegexTimeout);
-
-                if (sourceMatch.Success)
+                // Create citation with correct position in source text
+                yield return new Citation
                 {
-                    yield return FromMatch(
-                        CreateMatchAtIndex(adjustedText, adjustedIndex, SourceText),
-                        Template,
-                        SourceText,
-                        parent: this,
-                        RegexTimeout);
+                    Text = match.Value,
+                    Span = (adjustedIndex, adjustedIndex + match.Length),
+                    SourceText = SourceText,
+                    Template = Template,
+                    Parent = this,
+                    RawTokens = ExtractTokensFromMatch(match, Template),
+                    Tokens = ExtractAndNormalizeTokens(match, Template, RegexTimeout),
+                    RegexTimeout = RegexTimeout
+                };
+            }
+        }
+    }
+
+    /// <summary>
+    /// Extracts raw tokens from a regex match.
+    /// </summary>
+    private static ImmutableDictionary<string, string> ExtractTokensFromMatch(Match match, Template template)
+    {
+        var tokens = ImmutableDictionary.CreateBuilder<string, string>();
+        foreach (var (tokenName, _) in template.Tokens)
+        {
+            var group = match.Groups[tokenName];
+            if (group.Success)
+            {
+                tokens[tokenName] = group.Value;
+            }
+        }
+        return tokens.ToImmutable();
+    }
+
+    /// <summary>
+    /// Extracts and normalizes tokens from a regex match.
+    /// </summary>
+    private static ImmutableDictionary<string, string> ExtractAndNormalizeTokens(
+        Match match, Template template, TimeSpan? regexTimeout)
+    {
+        var tokens = ImmutableDictionary.CreateBuilder<string, string>();
+        foreach (var (tokenName, tokenType) in template.Tokens)
+        {
+            var group = match.Groups[tokenName];
+            if (group.Success)
+            {
+                var normalized = tokenType.Normalize(group.Value, regexTimeout);
+                if (normalized != null)
+                {
+                    tokens[tokenName] = normalized;
                 }
             }
         }
+        return tokens.ToImmutable();
     }
 
     /// <summary>
@@ -312,26 +345,21 @@ public record class Citation
             if (match.Success)
             {
                 var adjustedIndex = startIndex + match.Index;
-                return FromMatch(
-                    CreateMatchAtIndex(match.Value, adjustedIndex, SourceText),
-                    Template,
-                    SourceText,
-                    parent: this,
-                    RegexTimeout);
+                // Create citation with correct position in source text
+                return new Citation
+                {
+                    Text = match.Value,
+                    Span = (adjustedIndex, adjustedIndex + match.Length),
+                    SourceText = SourceText,
+                    Template = Template,
+                    Parent = this,
+                    RawTokens = ImmutableDictionary<string, string>.Empty,
+                    Tokens = ImmutableDictionary<string, string>.Empty,
+                    RegexTimeout = RegexTimeout
+                };
             }
         }
 
         return null;
-    }
-
-    /// <summary>
-    /// Creates a Match object at a specific index in the source text.
-    /// </summary>
-    private static Match CreateMatchAtIndex(string matchText, int index, string sourceText)
-    {
-        // Use a simple pattern that matches the exact text
-        var pattern = Regex.Escape(matchText);
-        var fullText = sourceText.Substring(index);
-        return Regex.Match(fullText, pattern);
     }
 }

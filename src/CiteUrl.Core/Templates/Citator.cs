@@ -87,8 +87,14 @@ public class Citator : ICitator
         var citations = new List<Citation>();
 
         // Find all longform citations from all templates
+        Logger?.Debug("ListCitations: Starting template iteration ({TemplateCount} templates)", Templates.Count);
+        var templateIndex = 0;
         foreach (var template in Templates.Values)
         {
+            templateIndex++;
+            Logger?.Debug("ListCitations: Processing template {Index}/{Total}: {TemplateName}",
+                templateIndex, Templates.Count, template.Name);
+
             var regexes = template.BroadRegexes.Concat(template.Regexes);
 
             foreach (var regex in regexes)
@@ -108,6 +114,7 @@ public class Citator : ICitator
                 }
             }
         }
+        Logger?.Debug("ListCitations: Template iteration complete. Found {CitationCount} citations", citations.Count);
 
         // Sort by position
         citations = citations.OrderBy(c => c.Span.Start).ToList();
@@ -116,15 +123,32 @@ public class Citator : ICitator
         citations = RemoveOverlaps(citations);
 
         // Find shortforms and idforms for each citation
+        Logger?.Debug("ListCitations: Starting citation processing ({CitationCount} citations)", citations.Count);
+        var citationIndex = 0;
         foreach (var citation in citations)
         {
+            citationIndex++;
+            Logger?.Debug("ListCitations: Processing citation {Index}/{Total}: {CitationText}",
+                citationIndex, citations.Count, citation.Text);
+
             // Yield longform
             yield return citation;
 
             // Find idform chain
             var current = citation;
-            while (true)
+            var idformChainLength = 0;
+            var previousIdformPosition = -1; // Track previous position to ensure forward progress
+            const int MaxIdformChainLength = 100; // Safety limit to prevent infinite loops
+
+            while (idformChainLength < MaxIdformChainLength)
             {
+                idformChainLength++;
+                if (idformChainLength > 1)
+                {
+                    Logger?.Debug("ListCitations:   Idform chain iteration {Length} for citation: {CitationText}",
+                        idformChainLength, citation.Text);
+                }
+
                 var nextCitationStart = citations
                     .Where(c => c.Span.Start > current.Span.End)
                     .Select(c => (int?)c.Span.Start)
@@ -132,8 +156,25 @@ public class Citator : ICitator
 
                 var idform = current.GetIdformCitation(nextCitationStart);
                 if (idform == null)
+                {
+                    if (idformChainLength > 1)
+                    {
+                        Logger?.Debug("ListCitations:   Idform chain ended at length {Length}", idformChainLength);
+                    }
                     break;
+                }
 
+                // Check for forward progress - prevent infinite loops from same position matches
+                if (idform.Span.Start <= previousIdformPosition)
+                {
+                    Logger?.Warning("ListCitations:   Idform chain detected non-forward progress at position {Position}, breaking chain",
+                        idform.Span.Start);
+                    break;
+                }
+                previousIdformPosition = idform.Span.Start;
+
+                Logger?.Debug("ListCitations:   Found idform: {IdformText} at position {Position}",
+                    idform.Text, idform.Span.Start);
                 yield return idform;
                 current = idform;
 
@@ -142,10 +183,20 @@ public class Citator : ICitator
                 {
                     var remainingText = text.Substring(current.Span.End);
                     if (idBreaks.IsMatch(remainingText))
+                    {
+                        Logger?.Debug("ListCitations:   Idform chain broken by id break pattern");
                         break;
+                    }
                 }
             }
+
+            if (idformChainLength >= MaxIdformChainLength)
+            {
+                Logger?.Error("ListCitations:   Idform chain reached maximum limit of {MaxLength} iterations, likely infinite loop",
+                    MaxIdformChainLength);
+            }
         }
+        Logger?.Debug("ListCitations: Citation processing complete");
     }
 
     /// <summary>
