@@ -1,0 +1,61 @@
+name: Release Please
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          config-file: .github/release-please-config.json
+          manifest-file: .github/.release-please-manifest.json
+
+      # The following steps only run if a release was created
+      - uses: actions/checkout@v4
+        if: ${{ steps.release.outputs.release_created }}
+
+      - name: Setup .NET 9
+        if: ${{ steps.release.outputs.release_created }}
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Restore dependencies
+        if: ${{ steps.release.outputs.release_created }}
+        run: dotnet restore
+
+      - name: Build
+        if: ${{ steps.release.outputs.release_created }}
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Test
+        if: ${{ steps.release.outputs.release_created }}
+        run: dotnet test --configuration Release --no-build --verbosity normal
+
+      - name: Pack
+        if: ${{ steps.release.outputs.release_created }}
+        run: dotnet pack --configuration Release --no-build
+
+      - name: Publish to NuGet
+        if: ${{ steps.release.outputs.release_created }}
+        run: |
+          dotnet nuget push src/CiteUrl.Core/bin/Release/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+          dotnet nuget push src/CiteUrl.Extensions.DependencyInjection/bin/Release/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+
+      - name: Upload Release Artifacts
+        if: ${{ steps.release.outputs.release_created }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload ${{ steps.release.outputs.tag_name }} src/CiteUrl.Core/bin/Release/*.nupkg
+          gh release upload ${{ steps.release.outputs.tag_name }} src/CiteUrl.Extensions.DependencyInjection/bin/Release/*.nupkg

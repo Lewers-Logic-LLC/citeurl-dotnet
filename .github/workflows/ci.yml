@@ -24,26 +24,9 @@ jobs:
     - name: Build
       run: dotnet build --no-restore --configuration Release
 
-    - name: Test - Fast Unit Tests
-      run: dotnet test --no-build --configuration Release --verbosity normal --filter "FullyQualifiedName~TokenOperationTests|FullyQualifiedName~TokenTypeTests|FullyQualifiedName~TemplateTests|FullyQualifiedName~YamlLoaderTests|FullyQualifiedName~ResourceLoaderTests|FullyQualifiedName~StringBuilderTests"
+    - name: Test
+      run: dotnet test --no-build --configuration Release --verbosity normal --collect:"XPlat Code Coverage"
       timeout-minutes: 5
-
-    - name: Test - Citation Tests (No ListCitations)
-      run: dotnet test --no-build --configuration Release --verbosity normal --filter "FullyQualifiedName~CitationTests"
-      timeout-minutes: 5
-
-    - name: Test - InsertLinks Tests
-      run: dotnet test --no-build --configuration Release --verbosity normal --filter "FullyQualifiedName~InsertLinksTests"
-      timeout-minutes: 5
-
-    - name: Test - Real World Tests (Integration)
-      run: dotnet test --no-build --configuration Release --verbosity normal --filter "FullyQualifiedName~RealWorldTests" --collect:"XPlat Code Coverage"
-      timeout-minutes: 10
-
-    # NOTE: AuthorityTests and CitatorTests are SKIPPED in CI due to known performance issue
-    # with ListCitations/ListAuthorities idform chain resolution (Citator.cs:126-147)
-    # These tests pass individually but timeout when run in CI. See CLAUDE.md for details.
-    # TODO: Fix ListCitations performance issue to enable these tests in CI
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4

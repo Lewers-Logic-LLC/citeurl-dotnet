@@ -213,7 +213,10 @@ public class Citator : ICitator
 
         foreach (var citation in citations)
         {
-            var coreTokens = citation.Tokens
+            // Use parent's tokens if this is an idform/shortform citation (which has empty tokens)
+            var tokensToUse = citation.Parent != null ? citation.Parent.Tokens : citation.Tokens;
+
+            var coreTokens = tokensToUse
                 .Where(kv => !ignored.Contains(kv.Key))
                 .Where(kv => !citation.Template.Tokens[kv.Key].IsSeverable ||
                              citation.Parent == null)

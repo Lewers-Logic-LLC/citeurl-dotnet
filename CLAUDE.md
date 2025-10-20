@@ -47,6 +47,31 @@ dotnet pack src/CiteUrl.Core/CiteUrl.Core.csproj --configuration Release --no-bu
 
 **IMPORTANT**: Always use the standard output location (`bin/Release/`) for NuGet packages. Do NOT use custom `--output` paths unless explicitly requested by the user.
 
+### Release Process
+
+This project uses **Release Please** for automated version management and releases.
+
+**Workflow**:
+1. **Make changes** with conventional commits (see [Conventional Commits](#conventional-commits))
+2. **Create PR** to `main` branch
+3. **Merge PR** after CI passes and code review
+4. **Release Please** automatically creates/updates a "Release PR" with:
+   - Version bump in `.csproj` files (based on conventional commits)
+   - Updated `CHANGELOG.md`
+5. **Review and merge** the Release PR when ready to publish
+6. **Automated deployment**:
+   - GitHub Release is created
+   - NuGet packages are built and published to NuGet.org
+   - Release artifacts are uploaded to GitHub
+
+**Version Bumping**:
+- `feat:` commits → **minor** version (1.0.0 → 1.1.0)
+- `fix:` commits → **patch** version (1.0.0 → 1.0.1)
+- `BREAKING CHANGE:` footer → **major** version (1.0.0 → 2.0.0)
+- Other types (docs, test, etc.) → no version bump
+
+**Manual Releases**: Use the "Manual Release and Publish" workflow (`release.yml`) for emergency releases only. Normal releases should go through Release Please.
+
 ### Testing
 
 ```bash
@@ -245,12 +270,56 @@ tests/
 2. `TokenType.Normalize()` applies edits → `Citation.Tokens`
 3. `StringBuilder.Build()` uses normalized tokens → `Citation.Url`, `Citation.Name`
 
+## Conventional Commits
+
+**REQUIRED**: All commits must follow the [Conventional Commits](https://www.conventionalcommits.org/) specification for automated release management.
+
+### Format
+```
+<type>(<scope>): <description>
+
+[optional body]
+
+[optional footer]
+```
+
+### Types
+- **feat**: New feature (minor bump: 1.0.0 → 1.1.0)
+- **fix**: Bug fix (patch bump: 1.0.0 → 1.0.1)
+- **docs**: Documentation only
+- **test**: Adding/updating tests
+- **refactor**: Code changes without bug fixes or features
+- **perf**: Performance improvements
+- **build**: Build system changes
+- **ci**: CI/CD changes
+- **chore**: Maintenance tasks
+
+### Examples
+```bash
+# Feature (minor bump)
+git commit -m "feat: add Bluebook 21st edition support"
+
+# Bug fix (patch bump)
+git commit -m "fix: resolve infinite loop in idform chain"
+
+# Breaking change (major bump: 1.0.0 → 2.0.0)
+git commit -m "feat!: redesign Citation API
+
+BREAKING CHANGE: Citation is now a record type with init-only properties"
+
+# Documentation (no bump)
+git commit -m "docs: update README with new examples"
+```
+
+**Important**: PRs are squash-merged, so the PR title becomes the commit message. Ensure PR titles follow conventional commit format!
+
 ## Key Constraints
 
 - **ReDoS Protection**: All regexes use 1-second timeout (configurable)
 - **Immutability**: Never mutate `ImmutableDictionary`/`ImmutableList` - use `.Add()`, `.SetItems()` to create new instances
 - **Nullable Reference Types**: Enabled (`<Nullable>enable</Nullable>`)
 - **Documentation**: XML doc comments required (`GenerateDocumentationFile: true`)
+- **Conventional Commits**: Required for all commits (see above)
 
 ## Supported Citation Types
 

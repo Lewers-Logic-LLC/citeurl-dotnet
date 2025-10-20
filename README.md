@@ -165,7 +165,7 @@ public class MyService
 ## Documentation
 
 - [USAGE.md](USAGE.md) - Detailed usage guide with examples
-- [API Documentation](https://github.com/tlewers/citeurl-dotnet/wiki) - Full API reference
+- **API Reference** - Full XML documentation available via IntelliSense in your IDE
 - [Python Original](https://github.com/raindrum/citeurl) - Original Python library
 
 ## Contributing

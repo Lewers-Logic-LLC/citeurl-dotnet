@@ -1,6 +1,16 @@
-name: Release and Publish
+name: Manual Release and Publish
+
+# NOTE: This workflow is for MANUAL releases only.
+# Normal releases are automated via release-please.yml workflow.
+# Use this workflow for emergency releases or manual version control.
 
 on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 1.0.1)'
+        required: true
+        type: string
   push:
     tags:
       - 'v*.*.*'
@@ -17,9 +27,14 @@ jobs:
       with:
         dotnet-version: '9.0.x'
 
-    - name: Extract version from tag
+    - name: Determine version
       id: get_version
-      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+      run: |
+        if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+          echo "VERSION=${{ inputs.version }}" >> $GITHUB_OUTPUT
+        else
+          echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        fi
 
     - name: Restore dependencies
       run: dotnet restore
