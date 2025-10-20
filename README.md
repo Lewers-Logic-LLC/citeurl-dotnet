@@ -2,7 +2,10 @@
 
 A .NET 9 library for parsing and hyperlinking legal citations. C# port of the Python [citeurl](https://github.com/raindrum/citeurl) library by Simon Raindrum Sherred.
 
-[![NuGet](https://img.shields.io/nuget/v/CiteUrl.Core.svg)](https://www.nuget.org/packages/CiteUrl.Core/)
+[![NuGet Version](https://img.shields.io/nuget/v/CiteUrl.Core.svg?label=CiteUrl.Core)](https://www.nuget.org/packages/CiteUrl.Core/)
+[![NuGet Downloads](https://img.shields.io/nuget/dt/CiteUrl.Core.svg)](https://www.nuget.org/packages/CiteUrl.Core/)
+[![CI Build](https://github.com/Bartomy-Labs/citeurl-dotnet/actions/workflows/ci.yml/badge.svg)](https://github.com/Bartomy-Labs/citeurl-dotnet/actions/workflows/ci.yml)
+[![GitHub Release](https://img.shields.io/github/v/release/Bartomy-Labs/citeurl-dotnet)](https://github.com/Bartomy-Labs/citeurl-dotnet/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 ## Features
@@ -184,4 +187,4 @@ Original Python library by Simon Raindrum Sherred, MIT License.
 
 ## Status
 
-🚧 **Alpha** - Core functionality complete, API may change before 1.0 release.
+✅ **Released** - v1.0.1 available on NuGet. Core functionality complete with 121+ passing tests.
