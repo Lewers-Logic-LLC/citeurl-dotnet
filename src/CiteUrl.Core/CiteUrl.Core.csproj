@@ -10,7 +10,7 @@
     <!-- NuGet Package Metadata -->
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <PackageId>CiteUrl.Core</PackageId>
-    <Version>1.0.0</Version>
+    <Version>1.0.1</Version>
     <Authors>Tom Lewers</Authors>
     <Description>Legal citation parser for .NET - C# port of Python citeurl library. Supports 130+ citation formats including US federal/state case law, statutes, and regulations.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
