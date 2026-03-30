@@ -4,8 +4,8 @@ A .NET 9 library for parsing and hyperlinking legal citations. C# port of the Py
 
 [![NuGet Version](https://img.shields.io/nuget/v/CiteUrl.Core.svg?label=CiteUrl.Core)](https://www.nuget.org/packages/CiteUrl.Core/)
 [![NuGet Downloads](https://img.shields.io/nuget/dt/CiteUrl.Core.svg)](https://www.nuget.org/packages/CiteUrl.Core/)
-[![CI Build](https://github.com/Bartomy-Labs/citeurl-dotnet/actions/workflows/ci.yml/badge.svg)](https://github.com/Bartomy-Labs/citeurl-dotnet/actions/workflows/ci.yml)
-[![GitHub Release](https://img.shields.io/github/v/release/Bartomy-Labs/citeurl-dotnet)](https://github.com/Bartomy-Labs/citeurl-dotnet/releases)
+[![CI Build](https://github.com/Lewers-Logic-LLC/citeurl-dotnet/actions/workflows/ci.yml/badge.svg)](https://github.com/Lewers-Logic-LLC/citeurl-dotnet/actions/workflows/ci.yml)
+[![GitHub Release](https://img.shields.io/github/v/release/Lewers-Logic-LLC/citeurl-dotnet)](https://github.com/Lewers-Logic-LLC/citeurl-dotnet/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 ## Features
